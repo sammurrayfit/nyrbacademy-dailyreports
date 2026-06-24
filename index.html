@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>RBNY Academy — Daily Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f0f0f0;--red:#cc0000;--text:#1a1a1a;--text2:#555;--text3:#888;--border:#ddd;--font:'Barlow Condensed',sans-serif;--fontb:'Barlow',sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--fontb);font-size:14px;min-height:100vh}
+.topbar{background:var(--red);display:flex;align-items:center;gap:10px;padding:0 16px;height:52px}
+.rpt-title{font-family:var(--font);font-size:18px;font-weight:800;letter-spacing:1px;color:#fff}
+.main{max-width:480px;margin:0 auto;padding:16px}
+
+/* passcode gate */
+.gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;padding:20px}
+.gate h1{font-family:var(--font);font-size:20px;font-weight:800;text-transform:uppercase;color:var(--text);margin-bottom:6px}
+.gate p{color:var(--text2);font-size:13px;margin-bottom:18px}
+.gate input{width:100%;max-width:240px;border:1px solid var(--border);border-radius:4px;padding:12px;font-size:18px;text-align:center;letter-spacing:3px;font-family:var(--font);outline:none;margin-bottom:12px}
+.gate input:focus{border-color:var(--red)}
+.gate button{background:var(--red);color:#fff;border:none;padding:11px 28px;border-radius:4px;font-family:var(--font);font-size:14px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer}
+.gate button:disabled{opacity:.5;cursor:default}
+.err{color:var(--red);font-size:13px;margin-top:10px;min-height:16px}
+
+/* report */
+.hidden{display:none}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.ph h2{font-family:var(--font);font-size:20px;font-weight:800;color:var(--text)}
+.logout{font-size:12px;color:var(--text2);cursor:pointer;text-decoration:underline}
+.panel{background:#fff;border:1px solid var(--border);padding:14px;margin-bottom:12px;border-radius:4px}
+.pt{font-family:var(--font);font-size:12px;font-weight:800;text-transform:uppercase;color:var(--red);margin-bottom:10px;letter-spacing:.3px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{background:#f8f8f8;border-radius:4px;padding:10px;text-align:center}
+.kv{font-family:var(--font);font-size:22px;font-weight:800;color:var(--red);line-height:1}
+.kl{font-size:10px;color:var(--text2);margin-top:3px;text-transform:uppercase;letter-spacing:.3px}
+.meta{font-size:12px;color:var(--text2);margin-bottom:10px}
+.cb{position:relative;height:160px}
+.empty{text-align:center;color:var(--text2);padding:30px 10px;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="topbar"><span class="rpt-title">RBNY ACADEMY</span></div>
+
+<div class="main">
+
+  <div id="gate" class="gate">
+    <h1>Daily Report</h1>
+    <p>Enter your passcode to view your most recent session.</p>
+    <input id="pc-input" type="text" inputmode="numeric" placeholder="••••" maxlength="12" autofocus/>
+    <button id="pc-btn" onclick="login()">View Report</button>
+    <div class="err" id="pc-err"></div>
+  </div>
+
+  <div id="report" class="hidden">
+    <div class="ph">
+      <h2 id="r-player"></h2>
+      <span class="logout" onclick="logout()">Log out</span>
+    </div>
+    <div id="r-body"></div>
+  </div>
+
+</div>
+
+<script>
+const KEY = 'rbny_athlete_passcode';
+const MC = {dist:'#cc0000',dpm:'#990000',hsr:'#444444',sprint:'#1a1a1a',expl:'#bb0000',maxspd:'#666666',acc:'#770000',dec:'#333333'};
+let chart;
+
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem(KEY);
+  if (saved) loadReport(saved);
+  document.getElementById('pc-input').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+});
+
+async function login() {
+  const code = document.getElementById('pc-input').value.trim();
+  if (!code) return;
+  await loadReport(code);
+}
+
+async function loadReport(code) {
+  const btn = document.getElementById('pc-btn');
+  const err = document.getElementById('pc-err');
+  btn.disabled = true;
+  err.textContent = '';
+  try {
+    const res = await fetch('/api/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passcode: code }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      sessionStorage.removeItem(KEY);
+      err.textContent = data.error || 'Invalid passcode';
+      btn.disabled = false;
+      return;
+    }
+    sessionStorage.setItem(KEY, code);
+    renderReport(data);
+  } catch {
+    err.textContent = 'Could not reach server — try again';
+    btn.disabled = false;
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem(KEY);
+  if (chart) { chart.destroy(); chart = null; }
+  document.getElementById('report').classList.add('hidden');
+  document.getElementById('gate').classList.remove('hidden');
+  document.getElementById('pc-input').value = '';
+  document.getElementById('pc-btn').disabled = false;
+}
+
+function renderReport(data) {
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('report').classList.remove('hidden');
+  document.getElementById('r-player').textContent = data.player;
+
+  const body = document.getElementById('r-body');
+  if (!data.sessions || !data.sessions.length) {
+    body.innerHTML = '<div class="panel"><div class="empty">No sessions logged yet.</div></div>';
+    return;
+  }
+
+  const latest = data.sessions[data.sessions.length - 1];
+  body.innerHTML = `
+    <div class="panel">
+      <div class="pt">Latest Session</div>
+      <div class="meta">${fmtDate(latest.date)}${latest.session ? ' — ' + latest.session : ''}${latest.md ? ' (' + latest.md + ')' : ''}</div>
+      <div class="kpis">
+        ${kpi(latest.dist, 'Total Distance (m)')}
+        ${kpi(latest.hsr, 'HSR (m)')}
+        ${kpi(latest.sprint, 'Sprint Dist (m)')}
+        ${kpi(latest.maxspd, 'Max Speed (m/s)')}
+        ${kpi(latest.acc, 'High Accels')}
+        ${kpi(latest.dec, 'High Decels')}
+        ${kpi(latest.mins, 'Minutes')}
+        ${kpi(latest.dpm, 'Dist/Min (m)')}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="pt">Total Distance — Last ${data.sessions.length} Sessions</div>
+      <div class="cb"><canvas id="trend-chart"></canvas></div>
+    </div>
+  `;
+
+  const ctx = document.getElementById('trend-chart');
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.sessions.map(s => fmtDate(s.date)),
+      datasets: [{
+        data: data.sessions.map(s => s.dist),
+        backgroundColor: MC.dist,
+        borderRadius: 3,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } },
+    },
+  });
+}
+
+function kpi(val, label) {
+  return `<div class="kpi"><div class="kv">${val ?? '—'}</div><div class="kl">${label}</div></div>`;
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const p = new Date(d);
+  if (isNaN(p)) return d;
+  return `${p.getMonth() + 1}/${p.getDate()}`;
+}
+</script>
+
+</body>
+</html>
