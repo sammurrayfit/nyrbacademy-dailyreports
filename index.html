@@ -13,7 +13,6 @@
 body{background:var(--bg);color:var(--text);font-family:var(--fontb);font-size:13px;min-height:100vh}
 .topbar{background:var(--red);display:flex;align-items:center;gap:10px;padding:0 14px;height:var(--tbh);position:sticky;top:0;z-index:300}
 .logo-box{background:#fff;border-radius:50%;width:36px;height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.logo-box img{width:32px;height:32px;border-radius:50%;object-fit:cover}
 .rpt-title{font-family:var(--font);font-size:17px;font-weight:800;letter-spacing:1px;color:#fff;white-space:nowrap;flex-shrink:0}
 .tb-pills{display:flex;gap:5px;align-items:center;flex:1;justify-content:flex-end}
 .pill{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.28);color:#fff;font-family:var(--font);font-size:11px;font-weight:700;padding:4px 10px;border-radius:3px;display:flex;align-items:center;gap:3px;white-space:nowrap;cursor:pointer}
@@ -24,10 +23,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--fontb);font-size:1
 .panel{background:#fff;border:1px solid var(--border);padding:10px 10px 6px}
 .pt{font-family:var(--font);font-size:12px;font-weight:800;text-transform:uppercase;color:var(--red);text-align:center;margin-bottom:5px;letter-spacing:.3px}
 .cb{position:relative;height:180px}
-.ctrl-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.cl{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
 select.ctrl{background:#fff;border:1px solid var(--border);color:var(--text);padding:4px 9px;border-radius:3px;font-size:12px;font-family:var(--fontb);outline:none;cursor:pointer}
 select.ctrl:focus{border-color:var(--red)}
-.cl{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.daily-header{background:#fff;border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.dh-kpis{display:flex;gap:18px;flex-wrap:wrap;flex:1}
+.kv{font-family:var(--font);font-size:20px;font-weight:800;color:var(--red);line-height:1}
+.kl{font-size:10px;color:var(--text2);margin-top:1px}
+.leg-bar{background:#fff;padding:4px 14px 6px;border-bottom:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.li{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
+.ld{width:9px;height:9px;border-radius:50%}
+.age-pill{background:#fff;border:1px solid var(--border);color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;padding:4px 9px;border-radius:3px;cursor:pointer;transition:all .12s;letter-spacing:.3px;white-space:nowrap}
+.age-pill.active{background:var(--red);border-color:var(--red);color:#fff}
 </style>
 </head>
 <body>
@@ -38,17 +45,39 @@ select.ctrl:focus{border-color:var(--red)}
   <div class="tb-pills"><div class="pill" onclick="loadAllData()">↻ <span id="last-updated" style="font-size:10px;opacity:.8">Loading…</span></div></div>
 </div>
 
-<div class="main">
-  <div class="ctrl-row">
-    <span class="cl">Player:</span><select class="ctrl" id="pd-player"></select>
-    <span class="cl">Sessions:</span>
-    <select class="ctrl" id="pd-n"><option value="7">Last 7 days</option><option value="10">Last 10</option><option value="20">Last 20</option><option value="30">Last 30</option></select>
+<div class="daily-header">
+  <div class="dh-kpis" id="daily-kpis"></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap">
+    <span class="cl">Team:</span>
+    <div id="daily-age-pills" style="display:flex;gap:4px;flex-wrap:wrap">
+      <button class="age-pill active" data-age="all" onclick="toggleAgePill(this)">All</button>
+      <button class="age-pill" data-age="U13" onclick="toggleAgePill(this)">U13</button>
+      <button class="age-pill" data-age="U14" onclick="toggleAgePill(this)">U14</button>
+      <button class="age-pill" data-age="U15" onclick="toggleAgePill(this)">U15</button>
+      <button class="age-pill" data-age="U16" onclick="toggleAgePill(this)">U16</button>
+      <button class="age-pill" data-age="U18" onclick="toggleAgePill(this)">U18</button>
+    </div>
+    <span class="cl">Date:</span>
+    <select class="ctrl" id="g-date" onchange="initDaily()"></select>
+    <span class="cl">Pos:</span>
+    <select class="ctrl" id="g-pos" onchange="initDaily()"><option value="all">All</option><option value="CB">CB</option><option value="FW">FW</option><option value="FB">FB</option><option value="GK">GK</option><option value="MF">MF</option></select>
   </div>
-  <div class="pg g2 sg"><div class="panel"><div class="pt">Total Distance (m)</div><div class="cb"><canvas id="c-pd-dist"></canvas></div></div><div class="panel"><div class="pt">Distance Per Minute</div><div class="cb"><canvas id="c-pd-dpm"></canvas></div></div></div>
-  <div class="pg g2 sg"><div class="panel"><div class="pt">High Speed Running (m)</div><div class="cb"><canvas id="c-pd-hsr"></canvas></div></div><div class="panel"><div class="pt">Very High Speed Running (m)</div><div class="cb"><canvas id="c-pd-vhsr"></canvas></div></div></div>
-  <div class="pg g2 sg"><div class="panel"><div class="pt">Sprint Distance (m)</div><div class="cb"><canvas id="c-pd-sprint"></canvas></div></div><div class="panel"><div class="pt">Explosive Distance (m)</div><div class="cb"><canvas id="c-pd-expl"></canvas></div></div></div>
-  <div class="pg g2 sg"><div class="panel"><div class="pt">Max Speed (m/s)</div><div class="cb"><canvas id="c-pd-maxspd"></canvas></div></div><div class="panel"><div class="pt">Accelerations (high)</div><div class="cb"><canvas id="c-pd-acc"></canvas></div></div></div>
-  <div class="pg g2 sg"><div class="panel"><div class="pt">Decelerations (high)</div><div class="cb"><canvas id="c-pd-dec"></canvas></div></div></div>
+</div>
+<div class="leg-bar">
+  <span style="font-size:11px;font-weight:700;color:var(--text2);margin-right:2px">Position</span>
+  <div class="li"><div class="ld" style="background:#b0b0b0"></div>CB</div>
+  <div class="li"><div class="ld" style="background:#e8a0a8"></div>FW</div>
+  <div class="li"><div class="ld" style="background:#444"></div>FB</div>
+  <div class="li"><div class="ld" style="background:#1a1a1a"></div>GK</div>
+  <div class="li"><div class="ld" style="background:#cc0000"></div>MF</div>
+</div>
+
+<div class="main">
+  <div class="pg g2 sg"><div class="panel"><div class="pt">Total Distance (m)</div><div class="cb"><canvas id="c-dist"></canvas></div></div><div class="panel"><div class="pt">Distance Per Minute</div><div class="cb"><canvas id="c-dpm"></canvas></div></div></div>
+  <div class="pg g2 sg"><div class="panel"><div class="pt">High Speed Running (m)</div><div class="cb"><canvas id="c-hsr"></canvas></div></div><div class="panel"><div class="pt">Very High Speed Running (m)</div><div class="cb"><canvas id="c-vhsr"></canvas></div></div></div>
+  <div class="pg g2 sg"><div class="panel"><div class="pt">Sprint Distance (m)</div><div class="cb"><canvas id="c-sprint"></canvas></div></div><div class="panel"><div class="pt">Explosive Distance (m)</div><div class="cb"><canvas id="c-expl"></canvas></div></div></div>
+  <div class="pg g2 sg"><div class="panel"><div class="pt">Max Speed (m/s)</div><div class="cb"><canvas id="c-maxspd"></canvas></div></div><div class="panel"><div class="pt">Accelerations (high)</div><div class="cb"><canvas id="c-acc"></canvas></div></div></div>
+  <div class="pg g2 sg"><div class="panel"><div class="pt">Decelerations (high)</div><div class="cb"><canvas id="c-dec"></canvas></div></div></div>
 </div>
 
 <div id="loader-overlay" style="position:fixed;inset:0;background:rgba(10,10,10,.85);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px">
@@ -71,16 +100,17 @@ select.ctrl:focus{border-color:var(--red)}
   }
 })();
 
-let PLAYERS=[],GPS={},PM={};
+let PLAYERS=[],GPS={},PM={},AM={},LATEST={};
 const CH={};
-const MC={dist:{c:'#cc0000',bg:'rgba(204,0,0,0.45)'},dpm:{c:'#990000',bg:'rgba(153,0,0,0.45)'},hsr:{c:'#444444',bg:'rgba(68,68,68,0.45)'},vhsr:{c:'#880000',bg:'rgba(136,0,0,0.45)'},sprint:{c:'#1a1a1a',bg:'rgba(26,26,26,0.45)'},expl:{c:'#bb0000',bg:'rgba(187,0,0,0.45)'},maxspd:{c:'#666666',bg:'rgba(102,102,102,0.45)'},acc:{c:'#770000',bg:'rgba(119,0,0,0.45)'},dec:{c:'#333333',bg:'rgba(51,51,51,0.45)'}};
+const PC={CB:'#b0b0b0',FW:'#e8a0a8',FB:'#444',GK:'#1a1a1a',MF:'#cc0000'};
 const METRICS=['dist','dpm','hsr','vhsr','sprint','expl','maxspd','acc','dec'];
 
 function showLoader(){document.getElementById('loader-overlay').style.display='flex';}
 function hideLoader(){document.getElementById('loader-overlay').style.display='none';}
 
+function avg(arr){const v=arr.filter(x=>x!=null&&!isNaN(x));return v.length?+(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):0;}
 function bOpt(){return{responsive:true,maintainAspectRatio:false,layout:{padding:{top:16}},plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},maxRotation:45},grid:{display:false}},y:{ticks:{font:{size:9}},grid:{color:'#f0f0f0'}}}};}
-function mkBar(id,labels,data,color,bg){const c=document.getElementById(id);if(!c)return;if(CH[id])CH[id].destroy();const opts=bOpt();opts.plugins.datalabels={anchor:'end',align:'top',color:'#333',font:{size:8,weight:'700'},clip:false,formatter:v=>v==null?'':typeof v==='number'?+(v%1===0?v.toFixed(0):v.toFixed(1)):v};CH[id]=new Chart(c,{type:'bar',data:{labels,datasets:[{data,backgroundColor:bg||color+'44',borderColor:color,borderWidth:1,borderRadius:2}]},options:opts,plugins:[ChartDataLabels]});}
+function mkBarM(id,labels,data,colors,bgs){const c=document.getElementById(id);if(!c)return;if(CH[id])CH[id].destroy();const opts=bOpt();opts.plugins.datalabels={anchor:'end',align:'top',color:'#333',font:{size:8,weight:'700'},clip:false,formatter:v=>v==null?'':typeof v==='number'?+(v%1===0?v.toFixed(0):v.toFixed(1)):v};CH[id]=new Chart(c,{type:'bar',data:{labels,datasets:[{data,backgroundColor:bgs||colors,borderColor:colors,borderWidth:1,borderRadius:2}]},options:opts,plugins:[ChartDataLabels]});}
 
 function parseDate(s){
   if(!s&&s!==0)return new Date(0);
@@ -90,28 +120,48 @@ function parseDate(s){
   if(!y)return new Date(0);
   return new Date(+y<100?2000+ +y:+y,+m-1,+d);
 }
+function pAge(p){return AM[p]||null;}
 
-function populateDropdown(id){
-  const sel=document.getElementById(id);if(!sel||sel.options.length)return;
-  [...PLAYERS].sort((a,b)=>a.localeCompare(b))
-    .forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=`${p} (${PM[p]||'?'})`;sel.appendChild(o);});
+function setupDateFilter(){
+  const sel=document.getElementById('g-date');
+  if(sel.options.length>0)return;
+  const dates=new Set();
+  PLAYERS.forEach(p=>{(GPS[p]||[]).forEach(s=>{if(s.dist)dates.add(s.date);});});
+  const sorted=[...dates].sort((a,b)=>parseDate(b)-parseDate(a));
+  sorted.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});
+  if(sorted.length)sel.value=sorted[0];
 }
 
-function initPlayerday(){
-  populateDropdown('pd-player');
-  document.getElementById('pd-player').onchange=renderPlayerDay;
-  document.getElementById('pd-n').onchange=renderPlayerDay;
-  renderPlayerDay();
+function toggleAgePill(btn){
+  const pills=[...document.querySelectorAll('#daily-age-pills .age-pill')];
+  if(btn.dataset.age==='all'){
+    pills.forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+  } else {
+    pills.find(p=>p.dataset.age==='all')?.classList.remove('active');
+    btn.classList.toggle('active');
+    if(!pills.some(p=>p.classList.contains('active'))){
+      pills.find(p=>p.dataset.age==='all')?.classList.add('active');
+    }
+  }
+  initDaily();
 }
 
-function renderPlayerDay(){
-  const player=document.getElementById('pd-player').value;
-  const nVal=document.getElementById('pd-n').value;
-  let sessions=(GPS[player]||[]).filter(s=>s.dist);
-  if(nVal==='7'){const cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);sessions=sessions.filter(s=>new Date(s.date)>=cutoff);}
-  else sessions=sessions.slice(-+nVal);
-  const labels=sessions.map(s=>{const p=parseDate(s.date);return`${p.getMonth()+1}/${p.getDate()}`;});
-  METRICS.forEach(k=>{mkBar('c-pd-'+k,labels,sessions.map(s=>s[k]??null),MC[k]?.c||'#cc0000',MC[k]?.bg);});
+function initDaily(){
+  setupDateFilter();
+  const selDate=document.getElementById('g-date').value;
+  const pos=document.getElementById('g-pos').value;
+  const activePills=[...document.querySelectorAll('#daily-age-pills .age-pill.active')].map(b=>b.dataset.age);
+  const ageAll=activePills.length===0||activePills.includes('all');
+  let data=[];
+  PLAYERS.forEach(p=>{const sess=(GPS[p]||[]).find(s=>s.date===selDate&&s.dist);if(sess)data.push({...sess,player:p,pos:PM[p]||'MF'});});
+  if(!ageAll)data=data.filter(d=>activePills.includes(pAge(d.player)));
+  if(pos!=='all')data=data.filter(d=>d.pos===pos);
+  if(!data.length){data=Object.values(LATEST).filter(d=>d.dist);if(pos!=='all')data=data.filter(d=>d.pos===pos);}
+  data=data.filter(d=>d.dist).sort((a,b)=>b.dist-a.dist);
+  const kpis=[{k:'dist',l:'Avg Distance (m)'},{k:'dpm',l:'Avg Dist/Min'},{k:'hsr',l:'Avg HSR'},{k:'vhsr',l:'Avg VHSR'},{k:'sprint',l:'Avg Sprint'},{k:'expl',l:'Avg Explosive'},{k:'acc',l:'Avg Accels'},{k:'dec',l:'Avg Decels'}];
+  document.getElementById('daily-kpis').innerHTML=kpis.map(({k,l})=>`<div><div class="kv">${avg(data.map(d=>d[k]))}</div><div class="kl">${l}</div></div>`).join('');
+  METRICS.forEach(key=>{const sorted=[...data].filter(d=>d[key]!=null).sort((a,b)=>b[key]-a[key]);mkBarM('c-'+key,sorted.map(d=>d.player),sorted.map(d=>d[key]),sorted.map(d=>PC[d.pos]||'#888'),sorted.map(d=>(PC[d.pos]||'#888')+'55'));});
 }
 
 async function loadAllData(){
@@ -122,13 +172,15 @@ async function loadAllData(){
     PLAYERS=(d.players||[]).sort((a,b)=>a.localeCompare(b));
     GPS=d.gps||{};
     PM=d.pos_map||{};
+    AM=d.age_map||{};
+    LATEST=d.latest||{};
     document.getElementById('last-updated').textContent='Updated: '+new Date().toLocaleTimeString();
   }catch(err){
     document.getElementById('loader-overlay').innerHTML=`<div style="text-align:center;color:#fff"><div style="font-size:18px;font-weight:700;margin-bottom:8px">⚠ Could not load data</div><div style="font-size:13px;opacity:.7">${err.message}</div><button onclick="loadAllData()" style="margin-top:14px;padding:8px 20px;background:#cc0000;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:700">Retry</button></div>`;
     return;
   }
   hideLoader();
-  initPlayerday();
+  initDaily();
 }
 
 loadAllData();

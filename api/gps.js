@@ -6,17 +6,21 @@ module.exports = async (req, res) => {
     const rows = await fetchSheet('GPS_Daily');
     const byPlayer = {};
     const posMap = {};
+    const ageMap = {};
     rows.forEach(row => {
       const player = row['Name'];
       if (!player || isAggregateRow(player)) return;
       const pos = row['Position'] || '';
+      const age = row['Age Group'] || '';
       if (pos) posMap[player] = normalizePos(pos);
+      if (age) ageMap[player] = age.trim();
       if (!byPlayer[player]) byPlayer[player] = [];
       byPlayer[player].push({
         date:    row['Date']                              || null,
         session: row['Session Type']                      || null,
         md:      row['MD (-)']                            || null,
         pos:     row['Position']                          || null,
+        age:     row['Age Group']                         || null,
         dist:    toNum(row['Distance (m)']),
         hsr:     toNum(row['Distance (HSR) (m)']),
         vhsr:    toNum(row['Distance (VHSR) (m)']),
@@ -33,10 +37,17 @@ module.exports = async (req, res) => {
     Object.keys(byPlayer).forEach(p => {
       byPlayer[p].sort((a, b) => parseD(a.date) - parseD(b.date));
     });
+    const latest = {};
+    Object.keys(byPlayer).forEach(p => {
+      const sessions = byPlayer[p].filter(s => s.dist);
+      if (sessions.length) latest[p] = { ...sessions[sessions.length - 1], player: p, pos: posMap[p] || 'MF' };
+    });
     res.status(200).json({
       players: Object.keys(byPlayer).sort(),
       pos_map: posMap,
+      age_map: ageMap,
       gps: byPlayer,
+      latest,
     });
   } catch (err) {
     console.error(err);
