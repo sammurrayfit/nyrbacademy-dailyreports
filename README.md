@@ -1,15 +1,16 @@
 # RBNY Academy — Athlete Daily Reports
 
-A minimal, passcode-gated site where each athlete can view only their own
-most recent GPS session (no rosters, no comparisons, no other players'
-data is ever sent to the browser).
+A stripped-down copy of the staff dashboard's "Player / Day" report page,
+gated by a single shared password instead of exposing the full AMS (no
+testing tools, no comparisons, no admin tabs — just the daily GPS report).
 
 ## How it works
 
-- `index.html` — passcode entry, then a single-player report view.
-- `api/report.js` — takes a passcode, looks it up against the `PLAYER_CODES`
-  env var (a JSON map of `passcode -> player name`), then fetches and
-  returns only that player's rows from the `GPS_Daily` tab.
+- `index.html` — one shared group password (prompt + sessionStorage, same
+  pattern as the staff AMS), then the Player/Day report: pick any player,
+  see their GPS session charts.
+- `api/gps.js` — same shape as the staff AMS's `/api/gps`: fetches the
+  `GPS_Daily` tab and returns all players' session data.
 - `api/_sheet.js` — fetches a Google Sheet tab as CSV (sheet must be set to
   "Anyone with the link can view").
 
@@ -18,11 +19,11 @@ data is ever sent to the browser).
 | Name | Value |
 |---|---|
 | `SHEET_ID` | The Google Sheet ID that contains the `GPS_Daily` tab |
-| `PLAYER_CODES` | JSON map, e.g. `{"4821":"Jane Smith","7790":"John Doe"}` |
 
-`PLAYER_CODES` is the actual access-control list — keep it out of git and
-out of the spreadsheet itself. Rotate a player's code by changing their
-entry and redeploying (or just updating the env var, no redeploy needed).
+## Changing the password
+
+Edit the `PW` constant near the top of the `<script>` block in
+`index.html` (currently `rbnyathletes2026`), commit, and push.
 
 ## Updating
 

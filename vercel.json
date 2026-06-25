@@ -7,6 +7,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/report", "destination": "/api/report.js" }
+    { "source": "/api/gps", "destination": "/api/gps.js" }
   ]
 }
